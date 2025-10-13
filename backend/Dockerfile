@@ -17,8 +17,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # 애플리케이션 코드 복사
 COPY . .
 
-# db 디렉토리 생성 (SQLite 파일 저장용)
-RUN mkdir -p /app/db
+# db 디렉토리 생성 및 권한 설정 (SQLite 파일 저장용)
+RUN mkdir -p /app/db && chmod 777 /app/db
 
 # 포트 노출
 EXPOSE 3050

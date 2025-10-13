@@ -40,6 +40,7 @@ services:
       - ALGORITHM=${ALGORITHM:-HS256}
       - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-1440}
       - DATABASE_URL=${DATABASE_URL:-sqlite+aiosqlite:///./db/essay_afs.db}
+      - DATABASE_PATH=/app/db/essay_afs.db
       - CORS_ORIGINS=${CORS_ORIGINS}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3050/health"]
