@@ -14,6 +14,10 @@ RUN npm ci
 FROM node:22-alpine AS builder
 WORKDIR /app
 
+# 빌드 시점에 필요한 환경 변수 선언
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+
 # 의존성 복사
 COPY --from=deps /app/node_modules ./node_modules
 

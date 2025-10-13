@@ -4,6 +4,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=https://essay-server.gbeai.net
     container_name: essay-afs-frontend
     restart: unless-stopped
     ports:
