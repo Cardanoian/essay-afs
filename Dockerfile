@@ -29,6 +29,9 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
+# curl 설치 (헬스체크용)
+RUN apk add --no-cache curl
+
 # 보안을 위한 non-root 유저 생성
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
