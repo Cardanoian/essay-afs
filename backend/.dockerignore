@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+
+# Database files (볼륨 마운트로 관리)
+db/
+*.db
+*.sqlite
+
+# Logs (볼륨 마운트로 관리)
+logs/
+
+# Environment variables
+.env
+.env.local
+.env.production
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+nginx.conf
+
+# Deployment scripts
+deploy.sh
+
+# Documentation
+README.md
+DEPLOYMENT.md
+*.md
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Certbot
+certbot/

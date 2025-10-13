@@ -87,12 +87,10 @@ Essay-AFS는 교육 현장에서 교사가 학생들의 에세이 작성을 효�
 
 ### 데이터베이스
 
-| 기술       | 용도                       |
-| ---------- | -------------------------- |
-| PostgreSQL | 프로덕션 데이터베이스      |
-| asyncpg    | 비동기 PostgreSQL 드라이버 |
-| SQLite     | 로컬 개발 데이터베이스     |
-| aiosqlite  | 비동기 SQLite 드라이버     |
+| 기술      | 용도                   |
+| --------- | ---------------------- |
+| SQLite    | 파일 기반 데이터베이스 |
+| aiosqlite | 비동기 SQLite 드라이버 |
 
 ## 📁 프로젝트 구조
 
@@ -462,7 +460,7 @@ const api = axios.create({
 
 ## 🌐 배포 가이드
 
-이 가이드는 **Vercel (프론트엔드)** + **Ubuntu 서버 (백엔드 + PostgreSQL)** 배포를 기준으로 작성되었습니다.
+이 가이드는 **Vercel (프론트엔드)** + **Ubuntu 서버 (백엔드 + SQLite)** 배포를 기준으로 작성되었습니다.
 
 ### 배포 아키텍처
 
@@ -475,7 +473,7 @@ const api = axios.create({
 │                 │         │  Gunicorn + Uvicorn  │
 └─────────────────┘         │  (FastAPI 백엔드)    │
                             │         ↓            │
-                            │  PostgreSQL (DB)     │
+                            │  SQLite (DB)         │
                             └──────────────────────┘
 ```
 
@@ -604,8 +602,8 @@ SECRET_KEY=your_very_secure_secret_key_here
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 
-# PostgreSQL 데이터베이스 URL
-DATABASE_URL=postgresql+asyncpg://essay_user:your_password@localhost:5432/essay_afs_db
+# SQLite 데이터베이스 (기본값)
+DATABASE_URL=sqlite+aiosqlite:///./db/essay_afs.db
 
 # CORS 설정 (Vercel 도메인 추가)
 CORS_ORIGINS=https://your-vercel-app.vercel.app,https://your-custom-domain.com
@@ -617,133 +615,7 @@ CORS_ORIGINS=https://your-vercel-app.vercel.app,https://your-custom-domain.com
 > python3 -c "import secrets; print(secrets.token_urlsafe(32))"
 > ```
 
-### 2.4 데이터베이스 설정 수정
-
-`backend/database.py` 파일 수정:
-
-```python
-import os
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
-from dotenv import load_dotenv
-
-load_dotenv()
-
-# 환경 변수에서 DATABASE_URL 가져오기
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./db/essay_afs.db")
-
-# 비동기 엔진 생성
-engine = create_async_engine(
-    DATABASE_URL,
-    echo=True  # 개발 시 SQL 로그 확인용
-)
-
-AsyncSessionLocal = sessionmaker(
-    bind=engine,
-    expire_on_commit=False,
-    class_=AsyncSession
-)
-
-Base = declarative_base()
-
-async def get_db():
-    async with AsyncSessionLocal() as session:
-        yield session
-```
-
-### 2.5 CORS 설정 수정
-
-`backend/main.py` 파일에서 CORS 설정 수정:
-
-```python
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
-
-# CORS 설정
-cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=cors_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-```
-
----
-
-## 3️⃣ PostgreSQL 데이터베이스 설정
-
-### 3.1 PostgreSQL 설치
-
-```bash
-sudo apt install -y postgresql postgresql-contrib
-```
-
-### 3.2 PostgreSQL 서비스 시작
-
-```bash
-sudo systemctl start postgresql
-sudo systemctl enable postgresql
-sudo systemctl status postgresql
-```
-
-### 3.3 데이터베이스 및 사용자 생성
-
-```bash
-# PostgreSQL 사용자로 전환
-sudo -u postgres psql
-
-# PostgreSQL 프롬프트에서 실행
-CREATE DATABASE essay_afs_db;
-CREATE USER essay_user WITH PASSWORD 'your_secure_password';
-GRANT ALL PRIVILEGES ON DATABASE essay_afs_db TO essay_user;
-
-# PostgreSQL 15+ 버전의 경우 추가 권한 필요
-\c essay_afs_db
-GRANT ALL ON SCHEMA public TO essay_user;
-
-# 종료
-\q
-```
-
-### 3.4 PostgreSQL 원격 접속 설정 (선택사항)
-
-로컬에서만 접속하는 경우 이 단계는 생략 가능합니다.
-
-```bash
-# postgresql.conf 수정
-sudo nano /etc/postgresql/14/main/postgresql.conf
-```
-
-다음 라인 찾아서 수정:
-
-```
-listen_addresses = 'localhost'  # 기본값 유지 (보안상 권장)
-```
-
-```bash
-# pg_hba.conf 수정
-sudo nano /etc/postgresql/14/main/pg_hba.conf
-```
-
-다음 라인 추가:
-
-```
-# IPv4 local connections:
-host    essay_afs_db    essay_user    127.0.0.1/32    md5
-```
-
-```bash
-# PostgreSQL 재시작
-sudo systemctl restart postgresql
-```
-
-### 3.5 데이터베이스 초기화
+### 2.4 데이터베이스 초기화
 
 ```bash
 cd ~/essay-afs/backend
@@ -751,16 +623,13 @@ source env/bin/activate
 python init_db.py
 ```
 
-### 3.6 PostgreSQL 백업 설정
+### 2.5 SQLite 백업 설정
 
 #### 수동 백업
 
 ```bash
 # 백업
-pg_dump -U essay_user -h localhost essay_afs_db > backup_$(date +%Y%m%d).sql
-
-# 복원
-psql -U essay_user -h localhost essay_afs_db < backup_20250113.sql
+cp ~/essay-afs/db/essay_afs.db ~/essay-afs/db/essay_afs_backup_$(date +%Y%m%d).db
 ```
 
 #### 자동 백업 (Cron)
@@ -773,11 +642,12 @@ nano ~/backup_db.sh
 ```bash
 #!/bin/bash
 BACKUP_DIR="/home/ubuntu/db_backups"
+DB_PATH="/home/ubuntu/essay-afs/db/essay_afs.db"
 mkdir -p $BACKUP_DIR
-pg_dump -U essay_user -h localhost essay_afs_db > $BACKUP_DIR/backup_$(date +%Y%m%d_%H%M%S).sql
+cp $DB_PATH $BACKUP_DIR/essay_afs_backup_$(date +%Y%m%d_%H%M%S).db
 
 # 7일 이상 된 백업 삭제
-find $BACKUP_DIR -name "backup_*.sql" -mtime +7 -delete
+find $BACKUP_DIR -name "essay_afs_backup_*.db" -mtime +7 -delete
 ```
 
 ```bash
@@ -796,9 +666,9 @@ crontab -e
 
 ---
 
-## 4️⃣ Gunicorn + Systemd 설정
+## 3️⃣ Gunicorn + Systemd 설정
 
-### 4.1 Systemd 서비스 파일 생성
+### 3.1 Systemd 서비스 파일 생성
 
 ```bash
 sudo nano /etc/systemd/system/essay-afs.service
@@ -809,7 +679,7 @@ sudo nano /etc/systemd/system/essay-afs.service
 ```ini
 [Unit]
 Description=Essay-AFS FastAPI Application
-After=network.target postgresql.service
+After=network.target
 
 [Service]
 Type=notify
@@ -834,14 +704,14 @@ RestartSec=5
 WantedBy=multi-user.target
 ```
 
-### 4.2 로그 디렉토리 생성
+### 3.2 로그 디렉토리 생성
 
 ```bash
 sudo mkdir -p /var/log/essay-afs
 sudo chown ubuntu:ubuntu /var/log/essay-afs
 ```
 
-### 4.3 서비스 시작
+### 3.3 서비스 시작
 
 ```bash
 # 서비스 등록
@@ -858,7 +728,7 @@ sudo systemctl status essay-afs
 sudo journalctl -u essay-afs -f
 ```
 
-### 4.4 서비스 관리 명령어
+### 3.4 서비스 관리 명령어
 
 ```bash
 # 재시작
@@ -874,9 +744,9 @@ sudo tail -f /var/log/essay-afs/access.log
 
 ---
 
-## 5️⃣ Nginx 리버스 프록시 설정
+## 4️⃣ Nginx 리버스 프록시 설정
 
-### 5.1 Nginx 설정 파일 생성
+### 4.1 Nginx 설정 파일 생성
 
 ```bash
 sudo nano /etc/nginx/sites-available/essay-afs
@@ -916,7 +786,7 @@ server {
 }
 ```
 
-### 5.2 Nginx 설정 활성화
+### 4.2 Nginx 설정 활성화
 
 ```bash
 # 심볼릭 링크 생성
@@ -935,9 +805,9 @@ sudo systemctl status nginx
 
 ---
 
-## 6️⃣ SSL 인증서 설정 (Let's Encrypt)
+## 5️⃣ SSL 인증서 설정 (Let's Encrypt)
 
-### 6.1 Certbot으로 SSL 인증서 발급
+### 5.1 Certbot으로 SSL 인증서 발급
 
 ```bash
 # SSL 인증서 자동 발급 및 Nginx 설정
@@ -947,7 +817,7 @@ sudo certbot --nginx -d your-backend-domain.com
 # Redirect HTTP to HTTPS? → Yes 선택
 ```
 
-### 6.2 자동 갱신 설정
+### 5.2 자동 갱신 설정
 
 ```bash
 # 자동 갱신 테스트
@@ -957,7 +827,7 @@ sudo certbot renew --dry-run
 sudo systemctl status certbot.timer
 ```
 
-### 6.3 SSL 설정 후 Nginx 재시작
+### 5.3 SSL 설정 후 Nginx 재시작
 
 ```bash
 sudo systemctl restart nginx
@@ -967,9 +837,9 @@ sudo systemctl restart nginx
 
 ---
 
-## 7️⃣ 방화벽 설정
+## 6️⃣ 방화벽 설정
 
-### 7.1 UFW 방화벽 설정
+### 6.1 UFW 방화벽 설정
 
 ```bash
 # UFW 활성화
@@ -983,14 +853,11 @@ sudo ufw allow OpenSSH
 sudo ufw allow 80/tcp
 sudo ufw allow 443/tcp
 
-# PostgreSQL (로컬만 접속하므로 외부 포트는 열지 않음)
-# sudo ufw allow 5432/tcp  # 외부 접속 필요 시에만
-
 # 상태 확인
 sudo ufw status verbose
 ```
 
-### 7.2 클라우드 보안 그룹 설정
+### 6.2 클라우드 보안 그룹 설정
 
 AWS EC2, DigitalOcean 등의 경우 추가로 보안 그룹 설정:
 
@@ -998,13 +865,12 @@ AWS EC2, DigitalOcean 등의 경우 추가로 보안 그룹 설정:
   - SSH (22): Your IP
   - HTTP (80): 0.0.0.0/0
   - HTTPS (443): 0.0.0.0/0
-  - PostgreSQL (5432): 127.0.0.1 (로컬만)
 
 ---
 
-## 8️⃣ 배포 확인 및 테스트
+## 7️⃣ 배포 확인 및 테스트
 
-### 8.1 백엔드 API 테스트
+### 7.1 백엔드 API 테스트
 
 ```bash
 # 헬스 체크
@@ -1014,13 +880,13 @@ curl https://your-backend-domain.com/health
 # 브라우저에서 https://your-backend-domain.com/docs 접속
 ```
 
-### 8.2 프론트엔드 테스트
+### 7.2 프론트엔드 테스트
 
 1. Vercel 배포 URL 접속 (예: `https://essay-afs.vercel.app`)
 2. 회원가입 및 로그인 테스트
 3. 학급 생성, 학생 추가 등 기능 테스트
 
-### 8.3 로그 모니터링
+### 7.3 로그 모니터링
 
 ```bash
 # 백엔드 로그
@@ -1029,16 +895,13 @@ sudo journalctl -u essay-afs -f
 # Nginx 로그
 sudo tail -f /var/log/nginx/essay-afs-access.log
 sudo tail -f /var/log/nginx/essay-afs-error.log
-
-# PostgreSQL 로그
-sudo tail -f /var/log/postgresql/postgresql-14-main.log
 ```
 
 ---
 
-## 9️⃣ 배포 후 유지보수
+## 8️⃣ 배포 후 유지보수
 
-### 9.1 코드 업데이트
+### 8.1 코드 업데이트
 
 ```bash
 cd ~/essay-afs
@@ -1053,7 +916,7 @@ pip install -r requirements.txt
 sudo systemctl restart essay-afs
 ```
 
-### 9.2 데이터베이스 마이그레이션
+### 8.2 데이터베이스 마이그레이션
 
 모델 변경 시:
 
@@ -1064,7 +927,7 @@ python init_db.py  # 또는 마이그레이션 스크립트 실행
 sudo systemctl restart essay-afs
 ```
 
-### 9.3 모니터링
+### 8.3 모니터링
 
 #### 시스템 리소스 확인
 
@@ -1100,7 +963,7 @@ sudo nano /etc/logrotate.d/essay-afs
 }
 ```
 
-### 9.4 성능 최적화
+### 8.4 성능 최적화
 
 #### Gunicorn 워커 수 조정
 
@@ -1120,30 +983,9 @@ sudo systemctl daemon-reload
 sudo systemctl restart essay-afs
 ```
 
-#### PostgreSQL 튜닝
-
-```bash
-sudo nano /etc/postgresql/14/main/postgresql.conf
-```
-
-```
-# 메모리 설정 (서버 RAM의 25% 권장)
-shared_buffers = 256MB
-effective_cache_size = 1GB
-maintenance_work_mem = 64MB
-work_mem = 4MB
-
-# 연결 설정
-max_connections = 100
-```
-
-```bash
-sudo systemctl restart postgresql
-```
-
 ---
 
-## 🔟 트러블슈팅
+## 9️⃣ 트러블슈팅
 
 ### 문제 1: 502 Bad Gateway
 
@@ -1173,18 +1015,20 @@ nano ~/essay-afs/backend/.env
 sudo systemctl restart essay-afs
 ```
 
-### 문제 3: 데이터베이스 연결 실패
+### 문제 3: 데이터베이스 파일 권한 문제
 
-**원인**: PostgreSQL 서비스 중지 또는 잘못된 연결 정보
+**원인**: SQLite 파일 또는 디렉토리 권한 문제
 
 **해결**:
 
 ```bash
-sudo systemctl status postgresql
-sudo systemctl start postgresql
+# db 디렉토리 및 파일 권한 확인
+ls -la ~/essay-afs/db/
 
-# 연결 테스트
-psql -U essay_user -h localhost -d essay_afs_db
+# 권한 수정
+chmod 755 ~/essay-afs/db
+chmod 644 ~/essay-afs/db/essay_afs.db
+chown ubuntu:ubuntu ~/essay-afs/db/essay_afs.db
 ```
 
 ### 문제 4: SSL 인증서 갱신 실패
@@ -1214,8 +1058,7 @@ sudo systemctl restart nginx
 - [ ] 서버 초기 설정 완료
 - [ ] 프로젝트 클론 및 의존성 설치
 - [ ] 환경 변수 설정 (`.env`)
-- [ ] PostgreSQL 설치 및 데이터베이스 생성
-- [ ] `database.py` 수정 (PostgreSQL URL)
+- [ ] SQLite 데이터베이스 초기화
 - [ ] Systemd 서비스 등록 및 시작
 - [ ] Nginx 리버스 프록시 설정
 - [ ] SSL 인증서 발급
@@ -1225,7 +1068,7 @@ sudo systemctl restart nginx
 ### 보안
 
 - [ ] `.env` 파일 권한 설정 (`chmod 600 .env`)
-- [ ] PostgreSQL 비밀번호 강력하게 설정
+- [ ] SECRET_KEY 강력하게 설정
 - [ ] SSH 키 기반 인증 설정
 - [ ] 불필요한 포트 차단
 - [ ] 정기 백업 설정
@@ -1244,7 +1087,6 @@ sudo systemctl restart nginx
 - [Vercel 문서](https://vercel.com/docs)
 - [FastAPI 배포 가이드](https://fastapi.tiangolo.com/deployment/)
 - [Nginx 공식 문서](https://nginx.org/en/docs/)
-- [PostgreSQL 문서](https://www.postgresql.org/docs/)
 - [Let's Encrypt 문서](https://letsencrypt.org/docs/)
 
 ---
