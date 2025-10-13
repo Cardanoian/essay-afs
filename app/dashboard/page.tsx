@@ -318,7 +318,7 @@ export default function DashboardPage() {
               <div className='flex gap-2'>
                 <input
                   type='text'
-                  placeholder='학급 이름 (예: 3반)'
+                  placeholder='학급 이름'
                   value={className}
                   onChange={(e) => setClassName(e.target.value)}
                   className='flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-400 text-lg'
@@ -326,7 +326,7 @@ export default function DashboardPage() {
                 />
                 <input
                   type='text'
-                  placeholder='학년 (예: 5학년)'
+                  placeholder='학년'
                   value={classGrade}
                   onChange={(e) => setClassGrade(e.target.value)}
                   className='w-32 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-400 text-lg'
