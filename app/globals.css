@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 :root {
   --background: #ffffff;
@@ -23,4 +23,17 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* 텍스트 입력창 스타일 개선 */
+input,
+textarea,
+select {
+  color: #111827; /* 아주 진한 회색 (거의 검은색) - 입력된 텍스트 */
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #6b7280; /* 중간 정도의 진한 회색 - placeholder */
+  opacity: 1;
 }
