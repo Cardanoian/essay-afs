@@ -11,7 +11,7 @@ import pandas as pd
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
-router = APIRouter(prefix="/api/students")
+router = APIRouter(prefix="/students")
 
 
 @router.get("/class/{class_id}")

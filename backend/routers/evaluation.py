@@ -6,7 +6,7 @@ from routers.auth import get_current_user
 from datetime import datetime
 import crud, schemas, database, models
 
-router = APIRouter(prefix="/api/evaluation")
+router = APIRouter(prefix="/evaluation")
 
 
 @router.get("/class/{class_id}", response_model=List[schemas.EvaluationGet])
