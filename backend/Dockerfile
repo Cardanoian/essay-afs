@@ -28,4 +28,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:3050/health || exit 1
 
 # Uvicorn으로 FastAPI 실행
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "3050", "--workers", "2"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "3050", "--workers", "2", "--proxy-headers", "--forwarded-allow-ips", "*"]
