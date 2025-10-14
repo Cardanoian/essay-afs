@@ -158,6 +158,12 @@ setup_ssl() {
     log_info "백엔드: $BACKEND_DOMAIN"
     log_info "이메일: $EMAIL"
     
+    # 기존 임시 컨테이너 강제 삭제
+    if [ $(docker ps -a -q -f name=nginx-temp) ]; then
+        log_warning "기존의 임시 Nginx 컨테이너(nginx-temp)를 삭제합니다."
+        docker rm -f nginx-temp
+    fi
+    
     # 임시 Nginx 설정 생성
     cat > nginx-temp.conf << EOF
 server {
@@ -382,8 +388,8 @@ main() {
     check_env_file
     install_docker
     create_directories
-    setup_ssl
     stop_existing_containers
+    setup_ssl
     start_containers
     setup_ssl_auto_renewal
     health_check
