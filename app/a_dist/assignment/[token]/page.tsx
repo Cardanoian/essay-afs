@@ -42,7 +42,7 @@ export default function DistributePage() {
 
   // 전체 제출 URL
   const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
-  const distributeUrl = `${baseUrl}/distribute/assignment/${token}`;
+  const distributeUrl = `${baseUrl}/a_dist/assignment/${token}`;
 
   useEffect(() => {
     if (typeof token === "string") {

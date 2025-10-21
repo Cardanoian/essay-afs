@@ -31,10 +31,8 @@ export default function DashboardPage() {
   const [feedbackGuideInitial, setFeedbackGuideInitial] = useState<any>(null);
   const [isClassModalOpen, setIsClassModalOpen] = useState(false);
   const [className, setClassName] = useState('');
-  const [classGrade, setClassGrade] = useState('');
   const [editClassId, setEditClassId] = useState<number | null>(null);
   const [editClassName, setEditClassName] = useState('');
-  const [editClassGrade, setEditClassGrade] = useState('');
   const [classes, setClasses] = useState<any[]>([]);
   const [loadingClass, setLoadingClass] = useState(false);
   const [deleteClassId, setDeleteClassId] = useState<number | null>(null);
@@ -68,14 +66,13 @@ export default function DashboardPage() {
   // 학급 추가
   const handleAddClass = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!className || !classGrade) return;
+    if (!className) return;
     setLoadingClass(true);
     try {
-      await addClass({ name: className, grade: classGrade });
+      await addClass({ name: className });
       await fetchClasses();
       await fetchUserInfo();
       setClassName('');
-      setClassGrade('');
     } finally {
       setLoadingClass(false);
     }
@@ -104,22 +101,17 @@ export default function DashboardPage() {
     const cls = classes.find((c) => c.id === id);
     setEditClassId(id);
     setEditClassName(cls?.name || '');
-    setEditClassGrade(cls?.grade || '');
   };
   const handleEditClassSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editClassId) return;
     setLoadingClass(true);
     try {
-      await updateClass(editClassId, {
-        name: editClassName,
-        grade: editClassGrade,
-      });
+      await updateClass(editClassId, { name: editClassName });
       await fetchClasses();
       await fetchUserInfo();
       setEditClassId(null);
       setEditClassName('');
-      setEditClassGrade('');
     } finally {
       setLoadingClass(false);
     }
@@ -314,28 +306,17 @@ export default function DashboardPage() {
             <h2 className='text-2xl font-bold text-purple-700 mb-4 text-center'>
               학급 관리
             </h2>
-            <form onSubmit={handleAddClass} className='space-y-3 mb-4'>
-              <div className='flex gap-2'>
-                <input
-                  type='text'
-                  placeholder='학급 이름'
-                  value={className}
-                  onChange={(e) => setClassName(e.target.value)}
-                  className='flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-400 text-lg'
-                  required
-                />
-                <input
-                  type='text'
-                  placeholder='학년'
-                  value={classGrade}
-                  onChange={(e) => setClassGrade(e.target.value)}
-                  className='w-32 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-400 text-lg'
-                  required
-                />
-              </div>
+            <form onSubmit={handleAddClass} className='flex gap-2 mb-4'>
+              <input
+                type='text'
+                placeholder='새 학급 이름'
+                value={className}
+                onChange={(e) => setClassName(e.target.value)}
+                className='flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-400 text-lg'
+              />
               <button
                 type='submit'
-                className='bg-purple-600 text-white rounded-lg px-4 py-2 font-bold hover:bg-purple-700 transition w-full'
+                className='bg-purple-600 text-white rounded-lg px-4 py-2 font-bold hover:bg-purple-700 transition'
               >
                 추가
               </button>
@@ -362,18 +343,8 @@ export default function DashboardPage() {
                           type='text'
                           value={editClassName}
                           onChange={(e) => setEditClassName(e.target.value)}
-                          placeholder='학급 이름'
                           className='flex-1 border rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-purple-400'
                           autoFocus
-                          required
-                        />
-                        <input
-                          type='text'
-                          value={editClassGrade}
-                          onChange={(e) => setEditClassGrade(e.target.value)}
-                          placeholder='학년'
-                          className='w-24 border rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-purple-400'
-                          required
                         />
                         <button
                           type='submit'
@@ -383,11 +354,7 @@ export default function DashboardPage() {
                         </button>
                         <button
                           type='button'
-                          onClick={() => {
-                            setEditClassId(null);
-                            setEditClassName('');
-                            setEditClassGrade('');
-                          }}
+                          onClick={() => setEditClassId(null)}
                           className='bg-gray-300 text-gray-700 rounded-lg px-3 py-1 font-bold hover:bg-gray-400 transition'
                         >
                           취소
@@ -395,14 +362,9 @@ export default function DashboardPage() {
                       </form>
                     ) : (
                       <>
-                        <div className='flex-1'>
-                          <span className='font-semibold text-purple-800'>
-                            {cls.name}
-                          </span>
-                          <span className='ml-2 text-sm text-purple-600'>
-                            ({cls.grade})
-                          </span>
-                        </div>
+                        <span className='flex-1 font-semibold text-purple-800'>
+                          {cls.name}
+                        </span>
                         <button
                           onClick={() => handleEditClass(cls.id)}
                           className='bg-yellow-400 text-white rounded-lg px-3 py-1 font-bold hover:bg-yellow-500 transition'

@@ -5,94 +5,76 @@ import bcrypt
 
 from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload, selectinload
-from sqlalchemy.ext.asyncio import AsyncSession 
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # User
 
-async def get_user_by_email(
-    db: AsyncSession, 
-    email: str
-    ) -> Optional[models.User]:
+
+async def get_user_by_email(db: AsyncSession, email: str) -> Optional[models.User]:
     # 기본 조회 (관계 필드 제외)
     stmt = select(models.User).where(models.User.email == email)
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
 
+
 async def get_user_by_email_with_relations(
-    db: AsyncSession, 
-    email: str
-    ) -> Optional[models.User]:
+    db: AsyncSession, email: str
+) -> Optional[models.User]:
     # 관계 필드 포함 조회
     stmt = (
         select(models.User)
         .where(models.User.email == email)
         .options(
-            selectinload(models.User.classes),
-            selectinload(models.User.assignment)
+            selectinload(models.User.classes), selectinload(models.User.assignment)
         )
     )
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
 
-async def create_user(
-    db: AsyncSession, 
-    user: schemas.UserCreate
-    ) -> models.User:
-    hashed_password = bcrypt.hashpw(user.password.encode('utf-8'), bcrypt.gensalt()).decode()
+
+async def create_user(db: AsyncSession, user: schemas.UserCreate) -> models.User:
+    hashed_password = bcrypt.hashpw(
+        user.password.encode("utf-8"), bcrypt.gensalt()
+    ).decode()
     db_user = models.User(
-        email=user.email, 
-        hashed_password=hashed_password, 
+        email=user.email,
+        hashed_password=hashed_password,
         school_level=user.school_level,
-        name=user.name
+        name=user.name,
     )
     db.add(db_user)
     await db.commit()
     await db.refresh(db_user)
     return db_user
 
+
 # Class
-async def get_classes(
-    db: AsyncSession, 
-    user_id: int
-    ) -> List[models.SchoolClass]:
+async def get_classes(db: AsyncSession, user_id: int) -> List[models.SchoolClass]:
     stmt = select(models.SchoolClass).where(models.SchoolClass.user_id == user_id)
     result = await db.execute(stmt)
     return result.scalars().all()
 
-async def get_grade_by_student_id(
-    db: AsyncSession, 
-    student_id: int
-    ) -> Optional[str]:
-    stmt = (
-        select(models.Student)
-        .options(selectinload(models.Student.class_))
-        .where(models.Student.id == student_id)
-    )
-    result = await db.execute(stmt)
-    student = result.scalar_one_or_none()
-
-    if not student:
-        return None 
-    return student.class_.grade
 
 async def create_class(
-    db: AsyncSession, 
-    class_data: schemas.ClassBase, 
-    teacher: models.User
-    ):
+    db: AsyncSession, class_data: schemas.ClassBase, teacher: models.User
+):
     new_class = models.SchoolClass(
         name=class_data.name,
-        grade=class_data.grade,
         school_level=teacher.school_level,
-        user_id=teacher.id
+        user_id=teacher.id,
     )
     db.add(new_class)
     await db.commit()
     await db.refresh(new_class)
     return new_class
 
-async def update_class(db: AsyncSession, class_id: int, class_update: schemas.ClassUpdate, user_id: int):
-    stmt = select(models.SchoolClass).where(models.SchoolClass.id == class_id, models.SchoolClass.user_id == user_id)
+
+async def update_class(
+    db: AsyncSession, class_id: int, class_update: schemas.ClassUpdate, user_id: int
+):
+    stmt = select(models.SchoolClass).where(
+        models.SchoolClass.id == class_id, models.SchoolClass.user_id == user_id
+    )
     result = await db.execute(stmt)
     school_class = result.scalar_one_or_none()
     if not school_class:
@@ -103,8 +85,11 @@ async def update_class(db: AsyncSession, class_id: int, class_update: schemas.Cl
     await db.refresh(school_class)
     return school_class
 
+
 async def delete_class(db: AsyncSession, class_id: int, user_id: int):
-    stmt = select(models.SchoolClass).where(models.SchoolClass.id == class_id, models.SchoolClass.user_id == user_id)
+    stmt = select(models.SchoolClass).where(
+        models.SchoolClass.id == class_id, models.SchoolClass.user_id == user_id
+    )
     result = await db.execute(stmt)
     school_class = result.scalar_one_or_none()
     if not school_class:
@@ -113,34 +98,33 @@ async def delete_class(db: AsyncSession, class_id: int, user_id: int):
     await db.commit()
     return True
 
+
 # Student
 
+
 async def get_students_by_class(
-    db: AsyncSession, 
-    class_id: int
-    ) -> List[models.Student]:
+    db: AsyncSession, class_id: int
+) -> List[models.Student]:
     stmt = select(models.Student).where(models.Student.class_id == class_id)
     result = await db.execute(stmt)
     return result.scalars().all()
 
+
 async def create_student(
-    db: AsyncSession, 
-    student: schemas.StudentBase
-    ) -> models.Student:
+    db: AsyncSession, student: schemas.StudentBase
+) -> models.Student:
     db_student = models.Student(**student.model_dump())
     db.add(db_student)
     await db.commit()
     await db.refresh(db_student)
     return db_student
 
-async def delete_student(
-    db: AsyncSession, 
-    student: schemas.StudentBase
-    ) -> bool:
+
+async def delete_student(db: AsyncSession, student: schemas.StudentBase) -> bool:
     stmt = select(models.Student).where(
         models.Student.number == student.number,
         models.Student.name == student.name,
-        models.Student.class_id == student.class_id
+        models.Student.class_id == student.class_id,
     )
     result = await db.execute(stmt)
     db_student = result.scalar_one_or_none()
@@ -152,21 +136,21 @@ async def delete_student(
     await db.commit()
     return True
 
+
 # Analysis
-async def get_student_with_analysis(
-    db: AsyncSession, 
-    student_id : int
-    ):
+async def get_student_with_analysis(db: AsyncSession, student_id: int):
 
     print("아이디", student_id)
-    stmt = select(
-        models.Student
-        ).where(
+    stmt = (
+        select(models.Student)
+        .where(
             models.Student.number == student_id,
-        ).options(
-        selectinload(models.Student.analysis_result),
-        selectinload(models.Student.class_),
         )
+        .options(
+            selectinload(models.Student.analysis_result),
+            selectinload(models.Student.class_),
+        )
+    )
 
     student_id = student_id
     result = await db.execute(stmt)
@@ -174,28 +158,25 @@ async def get_student_with_analysis(
     # print("결과 : ", result)
     return result.scalars().all()
 
+
 async def create_student_analysis_result(
-    db: AsyncSession,
-    student_id: int,
-    analysis_source: dict,
-    analysis_result: dict
+    db: AsyncSession, student_id: int, analysis_source: dict, analysis_result: dict
 ):
     from datetime import datetime
+
     new_result = models.AnalysisResult(
         student_id=student_id,
         analysis_source=analysis_source,
         analysis_result=analysis_result,
-        created_at=datetime.utcnow()
+        created_at=datetime.utcnow(),
     )
     db.add(new_result)
     await db.commit()
     await db.refresh(new_result)
     return new_result
 
-async def get_latest_student_analysis(
-    db: AsyncSession,
-    student_id: int
-):
+
+async def get_latest_student_analysis(db: AsyncSession, student_id: int):
     stmt = (
         select(models.AnalysisResult)
         .where(models.AnalysisResult.student_id == student_id)
@@ -205,11 +186,8 @@ async def get_latest_student_analysis(
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
 
-async def get_latest_student_submissions(
-    db: AsyncSession,
-    student_id: int,
-    n: int = 3
-):
+
+async def get_latest_student_submissions(db: AsyncSession, student_id: int, n: int = 3):
     stmt = (
         select(models.ASubmission)
         .where(models.ASubmission.student_id == student_id)
@@ -221,39 +199,38 @@ async def get_latest_student_submissions(
     # Prefer revised_content if available, else content
     return [s.revised_content if s.revised_content else s.content for s in submissions]
 
+
 # Assignment
 
+
 async def get_assignments_by_class(
-    db: AsyncSession, 
-    class_id: int, 
-    user_id: int
-    ) -> List[models.Assignment]:
+    db: AsyncSession, class_id: int, user_id: int
+) -> List[models.Assignment]:
     stmt = select(models.Assignment).where(
-        models.Assignment.class_id == class_id,
-        models.Assignment.user_id == user_id
+        models.Assignment.class_id == class_id, models.Assignment.user_id == user_id
     )
     result = await db.execute(stmt)
     return result.scalars().all()
 
+
 async def create_assignment(
-    db: AsyncSession, 
-    assignment: schemas.AssignmentCreate
-    ) -> models.Assignment:
+    db: AsyncSession, assignment: schemas.AssignmentCreate
+) -> models.Assignment:
     db_assignment = models.Assignment(**assignment.model_dump())
     db.add(db_assignment)
     await db.commit()
     await db.refresh(db_assignment)
     return db_assignment
 
+
 async def update_assignment(
     db: AsyncSession,
     assignment_id: int,
     assignment_update: schemas.AssignmentUpdate,
-    user_id: int
+    user_id: int,
 ) -> Optional[models.Assignment]:
     stmt = select(models.Assignment).where(
-        models.Assignment.id == assignment_id,
-        models.Assignment.user_id == user_id
+        models.Assignment.id == assignment_id, models.Assignment.user_id == user_id
     )
     result = await db.execute(stmt)
     assignment = result.scalar_one_or_none()
@@ -268,12 +245,13 @@ async def update_assignment(
     await db.refresh(assignment)
     return assignment
 
+
 async def update_assignment_status(
     db: AsyncSession,
     assignment_id: int,
     status: str,
     started_at=None,
-    completed_at=None
+    completed_at=None,
 ) -> Optional[models.Assignment]:
     stmt = select(models.Assignment).where(models.Assignment.id == assignment_id)
     result = await db.execute(stmt)
@@ -292,14 +270,10 @@ async def update_assignment_status(
     await db.refresh(assignment)
     return assignment
 
-async def delete_assignment(
-    db: AsyncSession, 
-    assignment_id: int, 
-    user_id: int
-    ) -> bool:
+
+async def delete_assignment(db: AsyncSession, assignment_id: int, user_id: int) -> bool:
     stmt = select(models.Assignment).where(
-        models.Assignment.id == assignment_id,
-        models.Assignment.user_id == user_id
+        models.Assignment.id == assignment_id, models.Assignment.user_id == user_id
     )
     result = await db.execute(stmt)
     assignment = result.scalar_one_or_none()
@@ -311,39 +285,38 @@ async def delete_assignment(
     await db.commit()
     return True
 
+
 # Evaluation
 
+
 async def get_evaluation_by_class(
-    db: AsyncSession, 
-    class_id: int, 
-    user_id: int
-    ) -> List[models.Evaluation]:
+    db: AsyncSession, class_id: int, user_id: int
+) -> List[models.Evaluation]:
     stmt = select(models.Evaluation).where(
-        models.Evaluation.class_id == class_id,
-        models.Evaluation.user_id == user_id
+        models.Evaluation.class_id == class_id, models.Evaluation.user_id == user_id
     )
     result = await db.execute(stmt)
     return result.scalars().all()
 
+
 async def create_evaluation(
-    db: AsyncSession, 
-    evaluation: schemas.EvaluationCreate
-    ) -> models.Evaluation:
+    db: AsyncSession, evaluation: schemas.EvaluationCreate
+) -> models.Evaluation:
     db_evaluation = models.Evaluation(**evaluation.model_dump())
     db.add(db_evaluation)
     await db.commit()
     await db.refresh(db_evaluation)
     return db_evaluation
 
+
 async def update_evaluation(
     db: AsyncSession,
     evaluation_id: int,
     evaluation_update: schemas.EvaluationUpdate,
-    user_id: int
+    user_id: int,
 ) -> Optional[models.Evaluation]:
     stmt = select(models.Evaluation).where(
-        models.Evaluation.id == evaluation_id,
-        models.Evaluation.user_id == user_id
+        models.Evaluation.id == evaluation_id, models.Evaluation.user_id == user_id
     )
     result = await db.execute(stmt)
     evaluation = result.scalar_one_or_none()
@@ -358,12 +331,13 @@ async def update_evaluation(
     await db.refresh(evaluation)
     return evaluation
 
+
 async def update_evaluation_status(
     db: AsyncSession,
     evaluation_id: int,
     status: str,
     started_at=None,
-    completed_at=None
+    completed_at=None,
 ) -> Optional[models.Evaluation]:
     stmt = select(models.Evaluation).where(models.Evaluation.id == evaluation_id)
     result = await db.execute(stmt)
@@ -382,10 +356,10 @@ async def update_evaluation_status(
     await db.refresh(evaluation)
     return evaluation
 
+
 async def delete_evaluation(db: AsyncSession, evaluation_id: int, user_id: int) -> bool:
     stmt = select(models.Evaluation).where(
-        models.Evaluation.id == evaluation_id,
-        models.Evaluation.user_id == user_id
+        models.Evaluation.id == evaluation_id, models.Evaluation.user_id == user_id
     )
     result = await db.execute(stmt)
     evaluation = result.scalar_one_or_none()
@@ -400,16 +374,14 @@ async def delete_evaluation(db: AsyncSession, evaluation_id: int, user_id: int) 
 
 # Submission
 
-async def update_assign_submission(
-    db: AsyncSession, 
-    submission_data: dict
-    ):
+
+async def update_assign_submission(db: AsyncSession, submission_data: dict):
     student_id = submission_data.get("student_id")
     assignment_id = submission_data.get("assignment_id")
 
     stmt = select(models.ASubmission).where(
         models.ASubmission.student_id == student_id,
-        models.ASubmission.assignment_id == assignment_id
+        models.ASubmission.assignment_id == assignment_id,
     )
     result = await db.execute(stmt)
     submission = result.scalar_one_or_none()
@@ -430,10 +402,8 @@ async def update_assign_submission(
     await db.refresh(submission)
     return submission
 
-async def update_eval_submission(
-    db: AsyncSession, 
-    submission_data: dict
-    ):
+
+async def update_eval_submission(db: AsyncSession, submission_data: dict):
     student_id = submission_data.get("student_id")
     evaluation_id = submission_data.get("evaluation_id")
 
@@ -442,7 +412,7 @@ async def update_eval_submission(
 
     stmt = select(models.ESubmission).where(
         models.ESubmission.student_id == student_id,
-        models.ESubmission.evaluation_id == evaluation_id
+        models.ESubmission.evaluation_id == evaluation_id,
     )
     result = await db.execute(stmt)
     submission = result.scalar_one_or_none()
@@ -454,8 +424,8 @@ async def update_eval_submission(
         submission.content = submission_data["content"]
     if "status" in submission_data:
         submission.status = submission_data["status"]
-    if "score" in submission_data :
-        submission.score = submission_data['score']
+    if "score" in submission_data:
+        submission.score = submission_data["score"]
 
     submission.submitted_at = datetime.datetime.now(datetime.timezone.utc)
 
@@ -463,33 +433,35 @@ async def update_eval_submission(
     await db.refresh(submission)
     return submission
 
+
 async def get_submissions_by_aid(
-    db: AsyncSession, 
-    assignment_id: Optional[int] = None, 
-    student_id: Optional[int] = None
-    ):
+    db: AsyncSession,
+    assignment_id: Optional[int] = None,
+    student_id: Optional[int] = None,
+):
     stmt = select(models.ASubmission).options(
         selectinload(models.ASubmission.assign_feedback)
-        )
+    )
 
     if assignment_id is not None:
         stmt = stmt.where(models.ASubmission.assignment_id == assignment_id)
     if student_id is not None:
         stmt = stmt.where(models.ASubmission.student_id == student_id)
-    
+
     result = await db.execute(stmt)
     submissions = result.scalars().all()
-    
+
     return submissions
 
+
 async def get_submissions_by_eid(
-    db: AsyncSession, 
-    evaluation_id: Optional[int] = None, 
-    student_id: Optional[int] = None
-    ):
+    db: AsyncSession,
+    evaluation_id: Optional[int] = None,
+    student_id: Optional[int] = None,
+):
     stmt = select(models.ESubmission).options(
         selectinload(models.ESubmission.eval_feedback)
-        )
+    )
 
     if evaluation_id is not None:
         stmt = stmt.where(models.ESubmission.evaluation_id == evaluation_id)
@@ -499,33 +471,34 @@ async def get_submissions_by_eid(
     result = await db.execute(stmt)
     return result.scalars().all()
 
+
 async def create_submission_feedback(
-    db: AsyncSession, 
-    submission_data: schemas.ASubmissionGet
-    ):
+    db: AsyncSession, submission_data: schemas.ASubmissionGet
+):
     submission = models.ASubmission(
         student_id=submission_data.student_id,
         assignment_id=submission_data.assignment_id,
-        status=submission_data.status
+        status=submission_data.status,
     )
     db.add(submission)
     await db.commit()
     await db.refresh(submission)
     return submission
 
+
 async def patch_submission_feedback(
-    db: AsyncSession, 
-    patch_info : schemas.SubmissionFeedbackPatch):
+    db: AsyncSession, patch_info: schemas.SubmissionFeedbackPatch
+):
     # 피드백 조회
-    if patch_info.evaluation_id :
+    if patch_info.evaluation_id:
         stmt_feedback = select(models.EFeedback).where(
             models.EFeedback.evaluation_id == patch_info.evaluation_id,
-            models.EFeedback.student_id == patch_info.student_id
+            models.EFeedback.student_id == patch_info.student_id,
         )
-    else :
+    else:
         stmt_feedback = select(models.AFeedback).where(
             models.AFeedback.assignment_id == patch_info.assignment_id,
-            models.AFeedback.student_id == patch_info.student_id
+            models.AFeedback.student_id == patch_info.student_id,
         )
 
     result = await db.execute(stmt_feedback)
@@ -536,15 +509,15 @@ async def patch_submission_feedback(
 
     submission_feedback.content = patch_info.feedback
 
-    if patch_info.evaluation_id :
+    if patch_info.evaluation_id:
         stmt_submission = select(models.ESubmission).where(
             models.ESubmission.evaluation_id == patch_info.evaluation_id,
-            models.ESubmission.student_id == patch_info.student_id
+            models.ESubmission.student_id == patch_info.student_id,
         )
-    else :
+    else:
         stmt_submission = select(models.ASubmission).where(
             models.ASubmission.assignment_id == patch_info.assignment_id,
-            models.ASubmission.student_id == patch_info.student_id
+            models.ASubmission.student_id == patch_info.student_id,
         )
     result_sub = await db.execute(stmt_submission)
     submission = result_sub.scalar_one_or_none()
@@ -556,10 +529,9 @@ async def patch_submission_feedback(
     await db.refresh(submission_feedback)
     return submission_feedback
 
+
 async def start_assignment_for_class(
-    db: AsyncSession,
-    assignment_id: int,
-    class_id: int
+    db: AsyncSession, assignment_id: int, class_id: int
 ) -> int:
     stmt_students = select(models.Student).where(models.Student.class_id == class_id)
     result = await db.execute(stmt_students)
@@ -570,7 +542,7 @@ async def start_assignment_for_class(
     for student in students:
         stmt_exist = select(models.ASubmission).where(
             models.ASubmission.assignment_id == assignment_id,
-            models.ASubmission.student_id == student.id
+            models.ASubmission.student_id == student.id,
         )
         exist_result = await db.execute(stmt_exist)
         exists = exist_result.scalar_one_or_none()
@@ -581,7 +553,7 @@ async def start_assignment_for_class(
                 student_id=student.id,
                 content="",
                 status="in_progress",
-                submitted_at=datetime.datetime.now(datetime.timezone.utc)
+                submitted_at=datetime.datetime.now(datetime.timezone.utc),
             )
             db.add(submission)
             await db.flush()  # submission.id 확보
@@ -590,7 +562,7 @@ async def start_assignment_for_class(
                 assign_submission_id=submission.id,
                 student_id=student.id,
                 assignment_id=assignment_id,
-                content=""
+                content="",
             )
             db.add(feedback)
             created_count += 1
@@ -600,9 +572,7 @@ async def start_assignment_for_class(
 
 
 async def start_evaluation_for_class(
-    db: AsyncSession,
-    evaluation_id: int,
-    class_id: int
+    db: AsyncSession, evaluation_id: int, class_id: int
 ) -> int:
     stmt_students = select(models.Student).where(models.Student.class_id == class_id)
     result = await db.execute(stmt_students)
@@ -613,7 +583,7 @@ async def start_evaluation_for_class(
     for student in students:
         stmt_exist = select(models.ESubmission).where(
             models.ESubmission.evaluation_id == evaluation_id,
-            models.ESubmission.student_id == student.id
+            models.ESubmission.student_id == student.id,
         )
         exist_result = await db.execute(stmt_exist)
         exists = exist_result.scalar_one_or_none()
@@ -623,9 +593,9 @@ async def start_evaluation_for_class(
                 evaluation_id=evaluation_id,
                 student_id=student.id,
                 content="",
-                score = "",
+                score="",
                 status="in_progress",
-                submitted_at=datetime.datetime.now(datetime.timezone.utc)
+                submitted_at=datetime.datetime.now(datetime.timezone.utc),
             )
             db.add(submission)
             await db.flush()  # submission.id 확보
@@ -634,7 +604,7 @@ async def start_evaluation_for_class(
                 eval_submission_id=submission.id,
                 student_id=student.id,
                 evaluation_id=evaluation_id,
-                content=""
+                content="",
             )
             db.add(feedback)
             created_count += 1

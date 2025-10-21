@@ -37,7 +37,7 @@ export const updateFeedbackGuide = (feedback_guide: any) =>
 // 학급 관련 함수
 export const getClasses = () => api.get('/classes');
 
-export const addClass = (class_info: { name: string; grade: string }) =>
+export const addClass = (class_info: { name: string }) =>
   api.post('/classes', class_info);
 
 export const updateClass = (
