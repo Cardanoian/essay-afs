@@ -38,7 +38,7 @@ export const updateFeedbackGuide = (feedback_guide: any) =>
 export const getClasses = () => api.get('/classes');
 
 export const addClass = (class_info: { name: string }) =>
-  api.post('/classes', class_info);
+  api.post('/classes/', class_info);
 
 export const updateClass = (
   classId: number,
@@ -57,7 +57,7 @@ export const addStudent = (student: {
   name: string;
   email?: string;
   class_id: number;
-}) => api.post('/students', student);
+}) => api.post('/students/', student);
 
 export const uploadStudentsCSV = (classId: number, file: File) => {
   const formData = new FormData();
@@ -83,7 +83,7 @@ export const createStudentAnalysis = (analysis_source: {
   level: string;
   grade: string;
   submissions: object;
-}) => api.post('/analysis', { analysis_source });
+}) => api.post('/analysis/', { analysis_source });
 
 // 과제 관련 함수
 export const getAssignments = (classId: number) =>
@@ -96,7 +96,7 @@ export const addAssignment = (assignment: {
   condition: string;
   status: string;
   class_id: number;
-}) => api.post('/assignments', assignment);
+}) => api.post('/assignments/', assignment);
 
 export const updateAssignment = (
   assignmentId: number,
@@ -130,7 +130,7 @@ export const addEvaluation = (evaluation: {
   item: string;
   criteria: object;
   status: string;
-}) => api.post('/evaluation', evaluation);
+}) => api.post('/evaluation/', evaluation);
 
 export const updateEvaluation = (
   evaluationId: number,
