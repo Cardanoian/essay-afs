@@ -8,7 +8,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 
 # 의존성 설치
-RUN npm ci
+RUN npm i
 
 # Stage 2: 빌드
 FROM node:22-alpine AS builder
