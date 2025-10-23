@@ -268,6 +268,15 @@ stop_existing_containers() {
     fi
 }
 
+# Docker 캐시/이미지/빌드 캐시/네트워크 정리 (DB만 유지)
+clean_docker_cache() {
+    log_step "Docker 캐시/이미지/빌드 캐시/네트워크 정리 중 (DB만 유지)..."
+    docker compose down --volumes --remove-orphans
+    docker system prune -af --volumes
+    docker builder prune -af
+    log_success "Docker 캐시/이미지/빌드 캐시/네트워크 정리 완료 (DB만 유지)"
+}
+
 # Docker 이미지 빌드 및 컨테이너 시작
 start_containers() {
     log_step "Docker 이미지 빌드 및 컨테이너 시작 중..."
@@ -389,6 +398,7 @@ main() {
     install_docker
     create_directories
     stop_existing_containers
+    clean_docker_cache
     setup_ssl
     start_containers
     setup_ssl_auto_renewal
