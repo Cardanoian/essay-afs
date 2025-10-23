@@ -44,10 +44,17 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+import os
+
+# CORS_ORIGINS 환경변수에서 중복/공백/빈 문자열 제거
+origins = list(
+    set(filter(None, [o.strip() for o in os.getenv("CORS_ORIGINS", "").split(",")]))
+)
+
 # CORS 미들웨어 추가
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://essay.gbeai.net", "http://localhost:3000"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
